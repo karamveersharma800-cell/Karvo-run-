@@ -313,7 +313,7 @@ function draw(){
   txt(mode==='auto'?'AUTO  LIVES INF':'LIVES '+lives,W-12,21,12,mode==='auto'?'#7be495':'#fff','right');
   if(mode==='auto'&&state==='play')txt('AUTO PLAY CHAL RAHA HAI',W/2,H-14,10,'#fff','center');
   if(banner>0&&state==='play')txt(bannerT,W/2,110,18,'#ffd23f','center');
-  if(state==='pause'){R(0,0,W,H,'rgba(0,0,0,.55)');txt('PAUSE',W/2,H/2,30,'#fff','center');txt('P ya PAUSE dabao',W/2,H/2+34,10,'#ffd23f','center')}
+ if(state==='pause'){R(0,0,W,H,'rgba(0,0,0,.55)');txt('PAUSE',W/2,H/2,30,'#fff','center');txt('P ya PAUSE dabao',W/2,H/2+34,10,'#ffd23f','center')}
   if(state==='over'){R(0,0,W,H,'rgba(0,0,0,.65)');txt('GAME OVER',W/2,180,34,'#ff4d4d','center');txt('Score '+score()+'   Best '+best,W/2,230,14,'#fff','center');txt('Enter / Space / tap: dobara',W/2,280,12,'#ffd23f','center')}
 }
 let last=0,acc=0;
@@ -565,3 +565,205 @@ reset(true);requestAnimationFrame(loop);
 </script>
 </body>
 </html>
+return j;
+  },
+  setTok(j){this.tok=j.idToken||j.id_token;this.ref=j.refreshToken||j.refresh_token;this.uid=j.localId||j.user_id;this.exp=Date.now()+(+(j.expiresIn||j.expires_in))*1000;LS.set('rt',this.ref);LS.set('uid',this.uid);UID=this.uid},
+  async auth(){
+    if(this.tok&&Date.now()<this.exp-60000)return this.tok;
+    if(!this.ref)throw new Error('nologin');
+    let r,j;
+    try{r=await fetchT('https://securetoken.googleapis.com/v1/token?key='+encodeURIComponent(FB.apiKey),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(this.ref)});j=await r.json()}
+    catch(e){throw new Error('net')}
+    if(!r.ok){this.ref=null;LS.del('rt');throw new Error('refresh')}
+    this.setTok(j);return this.tok;
+  },
+  async call(method,path,body,q){
+    const t=await this.auth();
+    const u=FB.databaseURL.replace(/\/$/,'')+'/'+path+'.json?auth='+encodeURIComponent(t)+(q?'&'+q:'');
+    let r;try{r=await fetchT(u,{method:method,body:body===undefined?undefined:JSON.stringify(body)})}catch(e){throw new Error('net')}
+    if(r.status===401||r.status===403)return{denied:true};
+    if(!r.ok)throw new Error('db '+r.status);
+    return{data:await r.json()};
+  },
+  async loadMe(){
+    const p=await this.call('GET','players/'+this.uid);
+    if(!(p.data&&p.data.name))return false;
+    ME={name:String(p.data.name),country:String(p.data.country||'Other'),state:String(p.data.state||'NA')};NAME=ME.name;LS.set('me',ME);
+    const r=await this.call('GET','ratings/'+this.uid);
+    if(r.data){RATED=1;LS.set('rated',1)}else if(RATED&&LS.get('stars',0)>0){try{await this.rate(LS.get('stars'))}catch(e){}}
+    const b=await this.call('GET','scores/'+this.uid+'/best');
+    if(b.data!==null&&b.data!==undefined){myBest=Math.max(myBest,+b.data);LS.set('best',myBest)}
+    const pd=+LS.get('pend',0);if(pd>0){try{await this.post(pd,ME);LS.set('pend',0)}catch(e){}}
+    return true;
+  },
+  async init(){
+    if(!FBON||!this.ref)return;
+    try{await this.auth();this.on=true;await this.loadMe()}catch(e){if(e.message==='refresh')this.on=false}
+  },
+  async signUp(name,pw){const j=await this.idp('signUp',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true},
+  async signIn(name,pw){const j=await this.idp('signInWithPassword',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true},
+  async saveMe(m){const p=await this.call('PUT','players/'+this.uid,{name:m.name,country:m.country,state:m.state,t:Date.now()});return !p.denied},
+  logout(){this.on=false;this.tok=null;this.ref=null;this.uid=null;['rt','me','rated','stars','best','lb','pend'].forEach(k=>LS.del(k));ME=null;NAME='';RATED=0;myBest=0;runMax=0},
+  async post(sc,m){
+    const cur=await this.call('GET','scores/'+this.uid+'/best');
+    if(cur.data!==null&&cur.data!==undefined&&+cur.data>=sc)return;
+    await this.call('PUT','scores/'+this.uid,{name:m.name,best:sc,country:m.country,state:m.state,cb:m.country+'|'+pad9(sc),sb:skey(m)+'|'+pad9(sc),t:Date.now()});
+  },
+  async board(tab,m){
+    let q='limitToLast=20&orderBy='+encodeURIComponent('"best"');
+    if(tab==='country'&&m)q='limitToLast=20&orderBy='+encodeURIComponent('"cb"')+'&startAt='+encodeURIComponent(JSON.stringify(m.country+'|'))+'&endAt='+encodeURIComponent(JSON.stringify(m.country+'|\uf8ff'));
+    if(tab==='state'&&m)q='limitToLast=20&orderBy='+encodeURIComponent('"sb"')+'&startAt='+encodeURIComponent(JSON.stringify(skey(m)+'|'))+'&endAt='+encodeURIComponent(JSON.stringify(skey(m)+'|\uf8ff'));
+    const r=await this.call('GET','scores',undefined,q);
+    if(r.denied)throw new Error('denied');
+    return Object.values(r.data||{}).map(v=>({n:String(v.name||'?'),s:+v.best||0,c:String(v.state&&v.state!=='NA'?v.state+', ':'')+String(v.country||'')})).sort((a,b)=>b.s-a.s).slice(0,20);
+  },
+  async rate(st){await this.call('PUT','ratings/'+this.uid,{stars:st,t:Date.now()})},
+  async avg(){
+    const r=await this.call('GET','ratings',undefined,'limitToLast=500&orderBy='+encodeURIComponent('"$key"'));
+    let s=0,n=0;Object.values(r.data||{}).forEach(v=>{const x=+v.stars;if(x>=1&&x<=5){s+=x;n++}});return n?{avg:s/n,n:n}:null;
+  }
+};
+function showName(){
+  $('hi').hidden=!ME;$('hi').textContent=ME?'Player: '+ME.name+'  ('+(ME.state&&ME.state!=='NA'?ME.state+', ':'')+ME.country+')':'';
+  $('rate').hidden=!!RATED||!ME;$('lo').hidden=!(ME&&FBON);
+  if(!FBON)$('avg').textContent='Offline mode: sirf is device ka board';
+  else if(ME&&!net.on)$('avg').textContent='Online abhi connect nahi hua';
+}
+async function loadAvg(){
+  if(!net.on)return;
+  try{const a=await net.avg();$('avg').textContent=a?'Rating: '+a.avg.toFixed(1)+' / 5 ('+a.n+' log)':''}catch(e){}
+}
+async function initOnline(){
+  try{await net.init();if(net.on)loadAvg()}catch(e){}
+  showName();
+}
+const panel=$('panel'),card=$('pcard');
+function openPanel(closable){panel.hidden=false;card.textContent='';$('pclose').hidden=closable===false}
+function authMsg(e){
+  const c=e&&e.code||e&&e.message||'';
+  if(c==='EMAIL_EXISTS')return 'Ye naam kisi aur ne le liya. Dusra naam chuno. Agar ye aapka hi account hai to Peeche jaakar SIGN IN karo.';
+  if(c==='WEAK_PASSWORD')return 'Password kam se kam 6 akshar ka rakho.';
+  if(c==='EMAIL_NOT_FOUND'||c==='INVALID_PASSWORD'||c==='INVALID_LOGIN_CREDENTIALS')return 'Naam ya password galat hai.';
+  if(c==='TOO_MANY_ATTEMPTS_TRY_LATER')return 'Bahut koshish ho gayi. Thodi der baad try karo.';
+  if(c==='OPERATION_NOT_ALLOWED')return 'Firebase mein Email/Password login chalu nahi hai (SETUP.md dekho).';
+  if(c==='NET'||c==='net')return 'Internet nahi chal raha. Dobara try karo.';
+  return 'Kuch gadbad hui ('+c+'). Dobara try karo.';
+}
+const fld=(ph,type,max)=>{const e=mk('input',null,'fld');e.type=type||'text';e.placeholder=ph;if(max)e.maxLength=max;e.autocomplete='off';e.setAttribute('aria-label',ph);return e};
+function openWelcome(){
+  openPanel(false);
+  const a=mk('button','NAYA ACCOUNT BANAO','okb'),b=mk('button','SIGN IN (purana account)'),row=mk('div',null,'row2');
+  a.onclick=()=>openRegister();b.onclick=openSignIn;row.append(a,b);
+  card.append(mk('h2','Karvo Run'),mk('div','Khelne ke liye account chahiye. Naya hai to account banao, pehle se hai to sign in karo.'),row);
+}
+function openRegister(pre){
+  openPanel(false);
+  const nm=fld('Apna naam (2-12 akshar)','text',12),pw=fld('Password (kam se kam 6)','password',30),cty=mk('select',null,'fld'),stBox=mk('div'),err=mk('div','','err');
+  const ok=mk('button',pre?'PROFILE SAVE KARO':'ACCOUNT BANAO','okb'),back=mk('button','PEECHE'),show=mk('button','PASSWORD DIKHAO');
+  COUNTRIES.forEach(c=>{const o=mk('option',c);o.value=c;cty.append(o)});
+  let stEl=null;
+  const setSt=()=>{stBox.textContent='';const L=STATES[cty.value];
+    if(L){stEl=mk('select',null,'fld');L.forEach(s=>{const o=mk('option',s);o.value=s;stEl.append(o)})}
+    else{stEl=mk('input',null,'fld');stEl.maxLength=24;stEl.placeholder='State / Region (khaali chhod sakte ho)'}
+    stEl.setAttribute('aria-label','State');stBox.append(stEl)};
+  cty.onchange=setSt;setSt();
+  show.onclick=()=>{pw.type=pw.type==='password'?'text':'password'};back.onclick=openWelcome;
+  if(pre){nm.value=pre;nm.disabled=true}
+  ok.onclick=async()=>{
+    const raw=nm.value.trim().replace(/\s+/g,' ');
+    if(!/^[\p{L}\p{N} _-]{2,12}$/u.test(raw)){err.textContent='Naam 2 se 12 akshar ka ho (letters, number, space).';return}
+    if(FBON&&!pre&&(pw.value.length<6||pw.value.length>30)){err.textContent='Password 6 se 30 akshar ka rakho.';return}
+    let st=String(stEl.value||'').trim();if(!STATES[cty.value]&&!/^[\p{L}\p{N} .'-]{0,24}$/u.test(st)){err.textContent='State sahi likho.';return}
+    if(!st)st='NA';
+    ok.disabled=true;err.textContent='Check ho raha hai...';
+    const m={name:raw,country:cty.value,state:st};
+    if(FBON){
+      try{
+        if(!pre)await net.signUp(raw,pw.value);
+        if(!(await net.saveMe(m))){err.textContent='Is naam ka profile pehle se hai. Peeche jaakar SIGN IN karo.';ok.disabled=false;return}
+      }catch(e){err.textContent=authMsg(e);ok.disabled=false;return}
+    }
+    ME=m;NAME=raw;LS.set('me',ME);showName();panel.hidden=true;loadAvg();
+  };
+  card.append(mk('h2',pre?'Profile poora karo':'Naya account'),mk('div',pre?'Bas desh aur state chuno.':'Naam sabko dikhta hai aur sirf ek player ka hota hai. Password yaad rakhna: bhul gaye to wapas nahi mil sakta.'),nm);
+  if(!pre&&FBON)card.append(pw,show);
+  card.append(cty,stBox,err,ok);
+  if(!pre)card.append(back);
+}
+function openSignIn(){
+  openPanel(false);
+  const nm=fld('Naam','text',12),pw=fld('Password','password',30),err=mk('div','','err'),ok=mk('button','SIGN IN','okb'),back=mk('button','PEECHE'),show=mk('button','PASSWORD DIKHAO');
+  show.onclick=()=>{pw.type=pw.type==='password'?'text':'password'};back.onclick=openWelcome;
+  ok.onclick=async()=>{
+    const raw=nm.value.trim().replace(/\s+/g,' ');
+    if(raw.length<2||!pw.value){err.textContent='Naam aur password dono daalo.';return}
+    ok.disabled=true;err.textContent='Check ho raha hai...';
+    try{
+      await net.signIn(raw,pw.value);
+      if(!(await net.loadMe())){openRegister(raw);return}
+      showName();panel.hidden=true;loadAvg();
+    }catch(e){err.textContent=authMsg(e);ok.disabled=false}
+  };
+  card.append(mk('h2','Sign in'),mk('div','Jis naam aur password se account banaya tha, wahi daalo.'),nm,pw,show,err,ok,back);
+}
+function openHelp(){
+  openPanel();
+  const L=['Daudte raho: Karvo apne aap aage bhaagta hai, aap sirf kudo aur ruko.','Coins uthao (+10). Gumbo ke upar kudo to wo mar jata hai (+20), lagatar kudne par combo badhta hai.','Gaddhe mein girna ya Gumbo se takrana = 1 life gayi. 3 life milti hain.','Har 100 tile par LEVEL UP: game tez hota hai, par ek limit par ruk jata hai.','Kudna: Space ya ↑ ya JUMP button. Dabake rakho to unchi kudoge.','AUTO PLAY mode password se khulta hai.'];
+  card.append(mk('h2','Kaise khele'));
+  L.forEach(t=>card.append(mk('div','• '+t)));
+}
+async function postScore(){
+  const out={sc:runMax,nb:false};
+  if(mode!=='real'||!ME||runMax<=0)return out;
+  const sc=runMax;runMax=0;out.sc=sc;
+  const lb=LS.get('lb',[]);lb.push({n:ME.name,s:sc});lb.sort((a,b)=>b.s-a.s);LS.set('lb',lb.slice(0,20));
+  if(sc>myBest){out.nb=true;myBest=sc;LS.set('best',sc)}
+  if(net.on){try{await net.post(sc,ME)}catch(e){LS.set('pend',Math.max(+LS.get('pend',0),sc))}}
+  else if(FBON)LS.set('pend',Math.max(+LS.get('pend',0),sc));
+  return out;
+}
+async function openLB(tab){
+  tab=tab||'world';openPanel();card.append(mk('h2','Leaderboard'));
+  const tabs=mk('div',null,'tabs');
+  [['world','Duniya'],['country','Mera Desh'],['state','Mera State']].forEach(([k,t])=>{if(k!=='world'&&!ME)return;const b=mk('button',t);if(k===tab)b.className='on';b.onclick=()=>openLB(k);tabs.append(b)});
+  const list=mk('ol',null,'lb'),foot=mk('div','Load ho raha hai...');card.append(tabs,list,foot);
+  let rows=null;
+  if(net.on){try{rows=await net.board(tab,ME)}catch(e){rows=null}}
+  const all=rows!==null;
+  if(!all)rows=LS.get('lb',[]).map(v=>({n:v.n,s:v.s,c:''}));
+  if(!rows.length)list.append(mk('li','Abhi koi score nahi. Pehle khelo!'));
+  rows.forEach((r,i)=>{const li=mk('li');li.className=ME&&r.n===ME.name?'me':'';const l=mk('span',(i+1)+'. '+r.n);if(r.c){l.append(mk('small',' '+r.c))}li.append(l,mk('span',String(r.s)));list.append(li)});
+  foot.textContent=(all?'Top 20 players. ':'Sirf is device ka board (online abhi available nahi). ')+'Aapka best: '+myBest;
+}
+function openOver(r){
+  openPanel();
+  const row=mk('div',null,'row2'),b1=mk('button','DOBARA','okb'),b2=mk('button','SHARE'),b3=mk('button','LEADERBOARD'),b4=mk('button','MENU');
+  b1.onclick=()=>start('real');b3.onclick=()=>openLB('world');b4.onclick=home;
+  b2.onclick=async()=>{const t='Maine Karvo Run mein '+r.sc+' score kiya! Kya tum mujhe hara sakte ho? '+location.href;try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);b2.textContent='COPY HO GAYA'}}catch(e){}};
+  row.append(b1,b2,b3,b4);
+  card.append(mk('h2','GAME OVER'),mk('div','Score: '+r.sc),mk('div','Best: '+myBest+(r.nb?'   NAYA RECORD!':'')),row);
+}
+function openRate(){
+  openPanel();let st=0;
+  const row=mk('div',null,'stars'),bs=[],ok=mk('button','RATING DO','okb');ok.disabled=true;
+  for(let i=1;i<=5;i++){const b=mk('button','★','star');b.setAttribute('aria-label',i+' star');b.onclick=()=>{st=i;bs.forEach((x,k)=>x.classList.toggle('on',k<i));ok.disabled=false};bs.push(b);row.append(b)}
+  ok.onclick=async()=>{
+    if(!st||RATED)return;
+    RATED=1;LS.set('rated',1);LS.set('stars',st);
+    try{if(net.on)await net.rate(st)}catch(e){}
+    showName();card.textContent='';card.append(mk('h2','Shukriya!'),mk('div',st+' star mili. Rating sirf ek baar hoti hai.'));loadAvg();
+  };
+  card.append(mk('h2','Game ko rate karo'),mk('div','Sirf ek baar rating de sakte ho.'),row,ok);
+}
+$('hp').onclick=openHelp;
+$('lo').onclick=()=>{if(!confirm('Logout karna hai? Wapas aane ke liye naam aur password chahiye.'))return;net.logout();showName();openWelcome()};
+{const f=$('fs');if(!document.fullscreenEnabled)f.hidden=true;f.onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen()}catch(e){}}}
+$('b3').onclick=()=>openLB('world');
+$('rate').onclick=openRate;
+$('pclose').onclick=()=>{panel.hidden=true};
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='p'||e.key==='P'||e.key==='Escape')togglePause()});
+showName();initOnline().then(()=>{if(!ME)openWelcome()});
+reset(true);requestAnimationFrame(loop);
+</script>
+</body>
+  </html>

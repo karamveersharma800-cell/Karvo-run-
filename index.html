@@ -1,69 +1,67 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Karvo Run</title>
-<meta name="description" content="Karvo Run: ek tez platformer game. Duniya ke players ke saath score ki race karo.">
+<meta name="description" content="Karvo Run: a fast platformer game. Race the world for the top score.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8D%84%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#14213d;--gold:#ffb703;--red:#d00000;--ink:#fff;--deep:#0b132b;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:'Press Start 2P',monospace,sans-serif;display:flex;justify-content:center}
-#app{width:100%;max-width:900px;padding:8px}
-#stage{position:relative}
-canvas{display:block;width:100%;height:auto;border-radius:8px;image-rendering:pixelated;background:#6ec6ff}
-#menu{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(11,19,43,.86);border-radius:8px;padding:10px;text-align:center;overflow:auto}
-h1{margin:0;font-size:clamp(20px,6.5vw,44px);color:var(--gold);text-shadow:3px 3px 0 var(--red)}
-p,small{font-size:clamp(7px,1.9vw,10px);line-height:1.7;margin:0;max-width:560px}
-button{font-family:inherit;font-size:clamp(9px,2.4vw,13px);border:0;border-bottom:4px solid rgba(0,0,0,.4);border-radius:6px;padding:12px 16px;color:#fff;cursor:pointer}
-#b1{background:#2a9d4a;width:min(80%,320px)}
-#b2{background:#c1121f;width:min(80%,320px)}
-button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-#pw{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-#pw[hidden]{display:none}
-#pwi{font-family:inherit;font-size:12px;padding:11px;border-radius:6px;border:2px solid var(--gold);background:var(--deep);color:#fff;width:190px}
-#pwok{background:var(--gold);color:#000}
-#err{width:100%;color:#ff6b6b;font-size:9px;min-height:12px}
-#bar{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
-#home{background:#415a77;padding:12px}
-#pad{display:flex;gap:8px;user-select:none;-webkit-user-select:none;touch-action:none}
-#pad button{background:#1d3557;min-width:58px;padding:16px 12px;touch-action:none}
-#bj{background:#e76f00!important;min-width:90px!important}
+<style>:root{--bg:#14213d;--gold:#ffb703;--red:#d00000;--ink:#fff;--deep:#0b132b;color-scheme:dark;box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:#000;color:var(--ink);font-family:'Press Start 2P',monospace,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
+#app{position:fixed;inset:0}
+#stage{position:absolute;inset:0;background:#000;overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;background:#6ec6ff;display:block}
+#hud{position:absolute;inset:0;z-index:3;pointer-events:none}
+body:not(.playing) #hud{display:none}
+#bar{position:absolute;top:34px;right:10px;display:flex;gap:6px;pointer-events:auto}
+#bar button{background:rgba(65,90,119,.82);font-size:10px;padding:9px 10px}
+#pad{position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;gap:14px;align-items:flex-end;user-select:none;-webkit-user-select:none;touch-action:none;pointer-events:none}
+#pad button{pointer-events:auto;touch-action:none;width:78px;height:78px;border-radius:50%;padding:0;font-size:24px;background:rgba(29,53,87,.72);border:3px solid rgba(255,255,255,.55)}
+#bj{margin-left:auto;width:96px!important;height:96px!important;font-size:14px!important;background:rgba(231,111,0,.82)!important}
 #pad[hidden]{display:none}
 [hidden]{display:none!important}
-#pz,#mu,#skin{background:#415a77;padding:12px 10px}
-#skin,#lo,#hp{background:#0b7285;width:min(60%,220px);padding:9px}
-.fld{font-family:inherit;font-size:12px;padding:10px;border-radius:6px;border:2px solid var(--gold);background:var(--deep);color:#fff;width:100%;margin:4px 0}
+#menu{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:linear-gradient(#0b132b,#1c2e5a);padding:24px 16px calc(24px + env(safe-area-inset-bottom));text-align:center;overflow:auto}
+h1{margin:0;font-size:clamp(28px,10vw,60px);color:var(--gold);text-shadow:4px 4px 0 var(--red)}
+p,small{font-size:clamp(8px,2.4vw,11px);line-height:1.8;margin:0;max-width:520px}
+button{font-family:inherit;font-size:clamp(10px,3vw,14px);border:0;border-bottom:4px solid rgba(0,0,0,.4);border-radius:8px;padding:14px 16px;color:#fff;cursor:pointer}
+#menu button{width:min(88%,360px)}
+#b1{background:#2a9d4a;font-size:clamp(14px,4.4vw,20px);padding:20px 16px}
+#b2{background:#c1121f}
+#b3{background:#5a189a}
+#skin,#lo,#hp,#pwset{background:#0b7285;padding:11px 12px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#pw{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:min(88%,360px)}
+#pwi{font-family:inherit;font-size:13px;padding:12px;border-radius:8px;border:2px solid var(--gold);background:var(--deep);color:#fff;flex:1;min-width:150px}
+#pwok{background:var(--gold);color:#000;width:auto!important}
+#err{width:100%;color:#ff6b6b;font-size:9px;min-height:12px}
+#pz,#mu,#home{background:rgba(65,90,119,.82)}
+.fld{font-family:inherit;font-size:13px;padding:12px;border-radius:8px;border:2px solid var(--gold);background:var(--deep);color:#fff;width:100%;margin:4px 0}
 .tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
-.tabs button{background:#243b53;padding:8px 10px}
+.tabs button{background:#243b53;padding:9px 10px;width:auto}
 .tabs button.on{background:var(--gold);color:#000}
 .row2{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
-.sk{width:34px;height:34px;border-radius:50%;padding:0;border:3px solid #fff}
-.sk.on{outline:3px solid var(--gold)}
 .err{color:#ff9e9e;min-height:12px}
 #who{display:flex;flex-direction:column;align-items:center;gap:6px}
-#nmrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-#nm{font-family:inherit;font-size:12px;padding:11px;border-radius:6px;border:2px solid var(--gold);background:var(--deep);color:#fff;width:170px}
-#nmok{background:#3a86ff}
-#hi{font-size:clamp(9px,2.4vw,13px);color:var(--gold)}
+#hi{font-size:clamp(10px,3vw,14px);color:var(--gold)}
 #nmsg{font-size:8px;line-height:1.6;color:#ff9e9e;min-height:10px}
 #avg{font-size:9px;color:#7be495}
-#b3{background:#5a189a;width:min(80%,320px)}
-#panel{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(11,19,43,.97);border-radius:8px;padding:12px;overflow:auto;text-align:center}
-#pcard{width:min(100%,420px);font-size:clamp(8px,2.2vw,11px);line-height:1.9}
-#pcard h2{margin:0 0 8px;color:var(--gold);font-size:clamp(13px,3.6vw,20px)}
+#panel{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(11,19,43,.98);padding:16px;overflow:auto;text-align:center}
+#pcard{width:min(100%,440px);font-size:clamp(9px,2.4vw,12px);line-height:1.9}
+#pcard h2{margin:0 0 8px;color:var(--gold);font-size:clamp(14px,4vw,22px)}
+#pcard button{margin:3px}
 ol.lb{list-style:none;margin:8px 0;padding:0;text-align:left}
-ol.lb li{display:flex;justify-content:space-between;gap:10px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.12)}
+ol.lb li{display:flex;justify-content:space-between;gap:10px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.12)}
 ol.lb li.me{background:rgba(255,183,3,.2)}
 .stars{display:flex;gap:6px;justify-content:center;margin:10px 0}
 .star{font-size:28px;background:#243b53;color:#6b7c93;padding:8px 10px}
 .star.on{color:#ffd23f}
 .okb{background:#2a9d4a}
 .okb:disabled{opacity:.4}
-#rate{position:absolute;right:8px;bottom:8px;z-index:4;background:var(--gold);color:#000;border-radius:999px;padding:9px 12px;font-size:10px}
+#rate{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;background:var(--gold);color:#000;border-radius:999px;padding:11px 14px;font-size:11px}
+body.playing #rate{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -71,34 +69,35 @@ ol.lb li.me{background:rgba(255,183,3,.2)}
 <div id="app">
  <div id="stage">
   <canvas id="c" width="800" height="450" aria-label="Karvo Run game"></canvas>
+  <div id="hud">
+   <div id="bar"><button id="home">MENU</button><button id="pz">PAUSE</button><button id="mu">SOUND ON</button></div>
+   <div id="pad"><button id="bl" aria-label="Left">&lt;</button><button id="br" aria-label="Right">&gt;</button><button id="bj">JUMP</button></div>
+  </div>
   <div id="menu">
    <h1>KARVO RUN</h1>
-   <p>Karvo ko daudao. Coins uthao, Gumbo ke upar kudo, gaddhon se bacho.</p>
+   <p>Run with Karvo. Collect coins, jump on Gumbos and avoid the pits.</p>
    <div id="who"><div id="hi" hidden></div><div id="nmsg" role="status"></div><div id="avg"></div></div>
-   <button id="b1">1. KHUD KHELO</button>
-   <button id="b2">2. AUTO PLAY (LOCK)</button>
+   <button id="b1">1. PLAY</button>
+   <button id="b2">2. AUTO PLAY (LOCKED)</button>
    <button id="b3">LEADERBOARD</button>
-   <button id="skin">RANG BADLO</button>
-   <button id="hp">KAISE KHELE (HELP)</button>
+   <button id="skin">CHANGE COLOR</button>
+   <button id="hp">HOW TO PLAY</button>
+   <button id="pwset" hidden>SET PASSWORD</button>
    <button id="lo" hidden>LOGOUT</button>
    <div id="pw" hidden>
     <input id="pwi" type="password" placeholder="Password" autocomplete="off" aria-label="Password">
-    <button id="pwok">KHOLO</button>
+    <button id="pwok">UNLOCK</button>
     <div id="err" role="alert"></div>
    </div>
-   <small>Chalna: ← → ya A D. Kudna: Space ya ↑. Phone par neeche ke buttons. Game dheere dheere tez hota hai.</small>
+   <small>Move: &larr; &rarr; or A D. Jump: Space or &uarr;. On phones use the on-screen buttons. The game speeds up as you go.</small>
   </div>
-  <div id="panel" hidden><div id="pcard"></div><button id="pclose">BAND KARO</button></div>
-  <button id="rate" hidden aria-label="Game ko rate karo">★ RATE</button>
- </div>
- <div id="bar">
-  <button id="home">MENU</button><button id="pz">PAUSE</button><button id="mu">SOUND</button><button id="fs">FULL</button>
-  <div id="pad"><button id="bl" aria-label="Left">&lt;</button><button id="br" aria-label="Right">&gt;</button><button id="bj">JUMP</button></div>
+  <div id="panel" hidden><div id="pcard"></div><button id="pclose">CLOSE</button></div>
+  <button id="rate" hidden aria-label="Rate this game">&#9733; RATE</button>
  </div>
 </div>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-const W=800,H=450,G=370,T=32,PASS='karv123';
+let W=800;const H=450,G=370,T=32,PASS='karv123';
 let mode=null,state='menu',cam=0,solids=[],coins=[],enemies=[],genX=0,first=true,p,bonus=0,coinsN=0,lives=3,best=0,deadT=0,frame=0,face=1;
 const keys={},touch={l:0,r:0,j:0};
 const $=id=>document.getElementById(id);
@@ -243,8 +242,8 @@ function afterDeath(){
   if(mode==='real'){lives--;if(lives<=0){state='over';postScore().then(r=>{if(state==='over')openOver(r)});return}}
   reset(false);state='play';
 }
- function score(){return Math.max(0,Math.floor((p.x-80)/T))+bonus}
-function update(){
+function score(){return Math.max(0,Math.floor((p.x-80)/T))+bonus}
+ function update(){
   frame++;
   if(state==='dying'){p.vy+=.6;p.y+=p.vy;if(--deadT<=0)afterDeath();return}
   if(state!=='play')return;
@@ -328,20 +327,43 @@ function draw(){
   R(0,0,W,30,'rgba(0,0,0,.35)');
   txt('COIN '+coinsN,12,21,12);if(mode)txt('LV '+(1+Math.floor(Math.max(0,p.x-80)/T/100))+'  '+NAME,12,46,9,'#fff');txt('SCORE '+score(),W/2,21,12,'#ffd23f','center');
   txt(mode==='auto'?'AUTO  LIVES INF':'LIVES '+lives,W-12,21,12,mode==='auto'?'#7be495':'#fff','right');
-  if(mode==='auto'&&state==='play')txt('AUTO PLAY CHAL RAHA HAI',W/2,H-14,10,'#fff','center');
+  if(mode==='auto'&&state==='play')txt('AUTO PLAY RUNNING',W/2,H-14,10,'#fff','center');
   if(banner>0&&state==='play')txt(bannerT,W/2,110,18,'#ffd23f','center');
-  if(state==='pause'){R(0,0,W,H,'rgba(0,0,0,.55)');txt('PAUSE',W/2,H/2,30,'#fff','center');txt('P ya PAUSE dabao',W/2,H/2+34,10,'#ffd23f','center')}
-  if(state==='over'){R(0,0,W,H,'rgba(0,0,0,.65)');txt('GAME OVER',W/2,180,34,'#ff4d4d','center');txt('Score '+score()+'   Best '+best,W/2,230,14,'#fff','center');txt('Enter / Space / tap: dobara',W/2,280,12,'#ffd23f','center')}
+  if(state==='pause'){R(0,0,W,H,'rgba(0,0,0,.55)');txt('PAUSE',W/2,H/2,30,'#fff','center');txt('Press P or the PAUSE button',W/2,H/2+34,10,'#ffd23f','center')}
+  if(state==='over'){R(0,0,W,H,'rgba(0,0,0,.65)');txt('GAME OVER',W/2,180,34,'#ff4d4d','center');txt('Score '+score()+'   Best '+best,W/2,230,14,'#fff','center');txt('Press Enter / Space / tap to retry',W/2,280,12,'#ffd23f','center')}
 }
 let last=0,acc=0;
 function endDraw(){ctx.restore()}
 function loop(t){acc+=Math.min(50,t-last);last=t;let nu=0;while(acc>=16.67&&nu<3){update();acc-=16.67;nu++}if(acc>34)acc=0;draw();endDraw();requestAnimationFrame(loop)}
 /* menu + modes */
-function start(m){$('pz').textContent='PAUSE';mode=m;runMax=0;panel.hidden=true;reset(true);state='play';$('menu').hidden=true;$('pad').hidden=(m==='auto');$('menu').style.display='none'}
-function home(){$('pz').textContent='PAUSE';if(mode==='real'&&state!=='over')postScore();panel.hidden=true;state='menu';mode=null;$('menu').hidden=false;$('menu').style.display='flex';$('pw').hidden=true;$('pwi').value='';$('err').textContent='';$('pad').hidden=false}
+function fitCanvas(){
+  const st=$('stage'),playing=document.body.classList.contains('playing');
+  const vw=window.innerWidth,vh=window.innerHeight;let asp=vw/vh;
+  if(playing&&vh>vw){
+    st.style.cssText='inset:auto;top:0;left:'+vw+'px;width:'+vh+'px;height:'+vw+'px;transform-origin:0 0;transform:rotate(90deg)';asp=vh/vw;
+  }else st.style.cssText='';
+  const nw=playing?Math.max(800,Math.min(1040,Math.round(450*asp))):800;
+  if(nw!==cv.width){cv.width=nw;W=nw}
+}
+async function enterPlay(){
+  document.body.classList.add('playing');fitCanvas();
+  try{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)await d.requestFullscreen({navigationUI:'hide'})}catch(e){}
+  try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}
+  setTimeout(fitCanvas,350);
+}
+function exitPlay(){
+  document.body.classList.remove('playing');
+  try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
+  try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen()}catch(e){}
+  fitCanvas();
+}
+addEventListener('resize',fitCanvas);
+addEventListener('orientationchange',()=>setTimeout(fitCanvas,250));
+function start(m){$('pz').textContent='PAUSE';mode=m;runMax=0;panel.hidden=true;reset(true);state='play';$('menu').hidden=true;$('pad').hidden=(m==='auto');$('menu').style.display='none';enterPlay()}
+function home(){exitPlay();$('pz').textContent='PAUSE';if(mode==='real'&&state!=='over')postScore();panel.hidden=true;state='menu';mode=null;$('menu').hidden=false;$('menu').style.display='flex';$('pw').hidden=true;$('pwi').value='';$('err').textContent='';$('pad').hidden=false}
 $('b1').onclick=()=>{if(!ME){openWelcome();return}start('real')};
 $('b2').onclick=()=>{$('pw').hidden=false;$('pwi').focus()};
-function tryPass(){if($('pwi').value===PASS)start('auto');else{$('err').textContent='Galat password. Dobara try karo.';$('pwi').select()}}
+function tryPass(){if($('pwi').value===PASS)start('auto');else{$('err').textContent='Wrong password. Try again.';$('pwi').select()}}
 $('pwok').onclick=tryPass;
 $('pwi').addEventListener('keydown',e=>{if(e.key==='Enter')tryPass()});
 $('home').onclick=home;
@@ -375,7 +397,7 @@ function sfx(k){
 }
 function burst(x,y,c,n){for(let i=0;i<n;i++)fx.push({x:x,y:y,vx:(Math.random()-.5)*5,vy:-Math.random()*4-1,l:28,c:c})}
 function pop(x,y,t){fx.push({x:x,y:y,vx:0,vy:-1,l:45,t:t})}
-function togglePause(){if(state==='play')state='pause';else if(state==='pause')state='play';$('pz').textContent=state==='pause'?'CHALU':'PAUSE'}
+function togglePause(){if(state==='play')state='pause';else if(state==='pause')state='play';$('pz').textContent=state==='pause'?'RESUME':'PAUSE'}
 function showMute(){$('mu').textContent=muted?'SOUND OFF':'SOUND ON'}
 $('mu').onclick=()=>{muted=muted?0:1;LS.set('mute',muted);showMute()};
 $('pz').onclick=togglePause;
@@ -403,11 +425,11 @@ const mk=(t,txt,cls)=>{const e=document.createElement(t);if(txt!=null)e.textCont
 /* ---- Firebase REST (naam + password se login) ---- */
 const fetchT=async(u,o,ms)=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||9000);try{return await fetch(u,Object.assign({},o,{signal:c.signal}))}finally{clearTimeout(t)}};
  const net={
-  on:false,uid:null,tok:null,exp:0,ref:LS.get('rt',null),
+  on:false,hasPw:null,uid:null,tok:null,exp:0,ref:LS.get('rt',null),
   async hash(n){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('karvo|'+n.toLowerCase().replace(/[\s_-]+/g,'')));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,40)+'@karvo-run.player'},
   async idp(kind,body){
     let r,j;
-    try{r=await fetchT('https://identitytoolkit.googleapis.com/v1/accounts:'+kind+'?key='+encodeURIComponent(FB.apiKey),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({returnSecureToken:true},body))});j=await r.json()}
+    try{r=await fetchT('https://identitytoolkit.googleapis.com/v1/accounts:'+kind+'?key='+encodeURIComponent(FB.apiKey),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign(['signUp','signInWithPassword','update'].includes(kind)?{returnSecureToken:true}:{},body))});j=await r.json()}
     catch(e){const x=new Error('net');x.code='NET';throw x}
     if(!r.ok){const m=String((j.error&&j.error.message)||'');const x=new Error(m);x.code=m.split(/[ :]/)[0];throw x}
     return j;
@@ -439,14 +461,22 @@ const fetchT=async(u,o,ms)=>{const c=new AbortController(),t=setTimeout(()=>c.ab
     const b=await this.call('GET','scores/'+this.uid+'/best');
     if(b.data!==null&&b.data!==undefined){myBest=Math.max(myBest,+b.data);LS.set('best',myBest)}
     const pd=+LS.get('pend',0);if(pd>0){try{await this.post(pd,ME);LS.set('pend',0)}catch(e){}}
+    try{const lk=await this.idp('lookup',{idToken:await this.auth()});this.hasPw=!!(lk.users&&lk.users[0]&&lk.users[0].email)}catch(e){}
     return true;
   },
   async init(){
     if(!FBON||!this.ref)return;
     try{await this.auth();this.on=true;await this.loadMe()}catch(e){if(e.message==='refresh')this.on=false}
   },
-  async signUp(name,pw){const j=await this.idp('signUp',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true},
-  async signIn(name,pw){const j=await this.idp('signInWithPassword',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true},
+  async signUp(name,pw){
+    const j=await this.idp('signUp',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true;this.hasPw=true;
+    const key=nkey(name);let taken=false;
+    try{const g=await this.call('GET','names/'+key);taken=!!(g.data&&g.data.uid!==this.uid);
+      if(!taken&&!g.data){const w=await this.call('PUT','names/'+key,{uid:this.uid,name:name});if(w.denied)taken=true}}catch(e){}
+    if(taken){try{await this.idp('delete',{idToken:this.tok})}catch(e){}this.tok=null;this.ref=null;this.uid=null;this.on=false;LS.del('rt');const x=new Error('EMAIL_EXISTS');x.code='EMAIL_EXISTS';throw x}
+  },
+  async setPassword(pw){const j=await this.idp('update',{idToken:await this.auth(),email:await this.hash(ME.name),password:pw});this.setTok(j);this.hasPw=true},
+  async signIn(name,pw){const j=await this.idp('signInWithPassword',{email:await this.hash(name),password:pw});this.setTok(j);this.on=true;this.hasPw=true},
   async saveMe(m){const p=await this.call('PUT','players/'+this.uid,{name:m.name,country:m.country,state:m.state,t:Date.now()});return !p.denied},
   logout(){this.on=false;this.tok=null;this.ref=null;this.uid=null;['rt','me','rated','stars','best','lb','pend'].forEach(k=>LS.del(k));ME=null;NAME='';RATED=0;myBest=0;runMax=0},
   async post(sc,m){
@@ -470,13 +500,13 @@ const fetchT=async(u,o,ms)=>{const c=new AbortController(),t=setTimeout(()=>c.ab
 };
 function showName(){
   $('hi').hidden=!ME;$('hi').textContent=ME?'Player: '+ME.name+'  ('+(ME.state&&ME.state!=='NA'?ME.state+', ':'')+ME.country+')':'';
-  $('rate').hidden=!!RATED||!ME;$('lo').hidden=!(ME&&FBON);
-  if(!FBON)$('avg').textContent='Offline mode: sirf is device ka board';
-  else if(ME&&!net.on)$('avg').textContent='Online abhi connect nahi hua';
+  $('rate').hidden=!!RATED||!ME;$('lo').hidden=!(ME&&FBON);$('pwset').hidden=!(ME&&FBON&&net.on&&net.hasPw===false);
+  if(!FBON)$('avg').textContent='Offline mode: this device only';
+  else if(ME&&!net.on)$('avg').textContent='Not connected online yet';
 }
 async function loadAvg(){
   if(!net.on)return;
-  try{const a=await net.avg();$('avg').textContent=a?'Rating: '+a.avg.toFixed(1)+' / 5 ('+a.n+' log)':''}catch(e){}
+  try{const a=await net.avg();$('avg').textContent=a?'Rating: '+a.avg.toFixed(1)+' / 5 ('+a.n+' players)':''}catch(e){}
 }
 async function initOnline(){
   try{await net.init();if(net.on)loadAvg()}catch(e){}
@@ -486,25 +516,25 @@ const panel=$('panel'),card=$('pcard');
 function openPanel(closable){panel.hidden=false;card.textContent='';$('pclose').hidden=closable===false}
 function authMsg(e){
   const c=e&&e.code||e&&e.message||'';
-  if(c==='EMAIL_EXISTS')return 'Ye naam kisi aur ne le liya. Dusra naam chuno. Agar ye aapka hi account hai to Peeche jaakar SIGN IN karo.';
-  if(c==='WEAK_PASSWORD')return 'Password kam se kam 6 akshar ka rakho.';
-  if(c==='EMAIL_NOT_FOUND'||c==='INVALID_PASSWORD'||c==='INVALID_LOGIN_CREDENTIALS')return 'Naam ya password galat hai.';
-  if(c==='TOO_MANY_ATTEMPTS_TRY_LATER')return 'Bahut koshish ho gayi. Thodi der baad try karo.';
-  if(c==='OPERATION_NOT_ALLOWED')return 'Firebase mein Email/Password login chalu nahi hai (SETUP.md dekho).';
-  if(c==='NET'||c==='net')return 'Internet nahi chal raha. Dobara try karo.';
-  return 'Kuch gadbad hui ('+c+'). Dobara try karo.';
+  if(c==='EMAIL_EXISTS')return 'That name is already taken. Choose another name. If this is your account, go back and SIGN IN.';
+  if(c==='WEAK_PASSWORD')return 'Password must be at least 6 characters.';
+  if(c==='EMAIL_NOT_FOUND'||c==='INVALID_PASSWORD'||c==='INVALID_LOGIN_CREDENTIALS')return 'Wrong name or password.';
+  if(c==='TOO_MANY_ATTEMPTS_TRY_LATER')return 'Too many attempts. Please try again later.';
+  if(c==='OPERATION_NOT_ALLOWED')return 'Email/Password sign-in is not enabled in Firebase (see SETUP.md).';
+  if(c==='NET'||c==='net')return 'No internet connection. Please try again.';
+  return 'Something went wrong ('+c+'). Please try again.';
 }
 const fld=(ph,type,max)=>{const e=mk('input',null,'fld');e.type=type||'text';e.placeholder=ph;if(max)e.maxLength=max;e.autocomplete='off';e.setAttribute('aria-label',ph);return e};
 function openWelcome(){
   openPanel(false);
-  const a=mk('button','NAYA ACCOUNT BANAO','okb'),b=mk('button','SIGN IN (purana account)'),row=mk('div',null,'row2');
+  const a=mk('button','CREATE NEW ACCOUNT','okb'),b=mk('button','SIGN IN (existing account)'),row=mk('div',null,'row2');
   a.onclick=()=>openRegister();b.onclick=openSignIn;row.append(a,b);
-  card.append(mk('h2','Karvo Run'),mk('div','Khelne ke liye account chahiye. Naya hai to account banao, pehle se hai to sign in karo.'),row);
+  card.append(mk('h2','Karvo Run'),mk('div','You need an account to play. New here? Create an account. Already have one? Sign in.'),row);
 }
 function openRegister(pre){
   openPanel(false);
-  const nm=fld('Apna naam (2-12 akshar)','text',12),pw=fld('Password (kam se kam 6)','password',30),cty=mk('select',null,'fld'),stBox=mk('div'),err=mk('div','','err');
-  const ok=mk('button',pre?'PROFILE SAVE KARO':'ACCOUNT BANAO','okb'),back=mk('button','PEECHE'),show=mk('button','PASSWORD DIKHAO');
+  const nm=fld('Your name (2-12 characters)','text',12),pw=fld('Password (at least 6)','password',30),cty=mk('select',null,'fld'),stBox=mk('div'),err=mk('div','','err');
+  const ok=mk('button',pre?'SAVE PROFILE':'CREATE ACCOUNT','okb'),back=mk('button','BACK'),show=mk('button','SHOW PASSWORD');
   COUNTRIES.forEach(c=>{const o=mk('option',c);o.value=c;cty.append(o)});
   let stEl=null;
   const setSt=()=>{stBox.textContent='';const L=STATES[cty.value];
@@ -516,45 +546,57 @@ function openRegister(pre){
   if(pre){nm.value=pre;nm.disabled=true}
   ok.onclick=async()=>{
     const raw=nm.value.trim().replace(/\s+/g,' ');
-    if(!/^[\p{L}\p{N} _-]{2,12}$/u.test(raw)){err.textContent='Naam 2 se 12 akshar ka ho (letters, number, space).';return}
-    if(FBON&&!pre&&(pw.value.length<6||pw.value.length>30)){err.textContent='Password 6 se 30 akshar ka rakho.';return}
-    let st=String(stEl.value||'').trim();if(!STATES[cty.value]&&!/^[\p{L}\p{N} .'-]{0,24}$/u.test(st)){err.textContent='State sahi likho.';return}
+    if(!/^[\p{L}\p{N} _-]{2,12}$/u.test(raw)){err.textContent='Name must be 2-12 characters (letters, numbers, spaces).';return}
+    if(FBON&&!pre&&(pw.value.length<6||pw.value.length>30)){err.textContent='Password must be 6 to 30 characters.';return}
+    let st=String(stEl.value||'').trim();if(!STATES[cty.value]&&!/^[\p{L}\p{N} .'-]{0,24}$/u.test(st)){err.textContent='Please enter a valid state.';return}
     if(!st)st='NA';
-    ok.disabled=true;err.textContent='Check ho raha hai...';
+    ok.disabled=true;err.textContent='Checking...';
     const m={name:raw,country:cty.value,state:st};
     if(FBON){
       try{
         if(!pre)await net.signUp(raw,pw.value);
-        if(!(await net.saveMe(m))){err.textContent='Is naam ka profile pehle se hai. Peeche jaakar SIGN IN karo.';ok.disabled=false;return}
+        if(!(await net.saveMe(m))){err.textContent='This name already has a profile. Go back and SIGN IN.';ok.disabled=false;return}
       }catch(e){err.textContent=authMsg(e);ok.disabled=false;return}
     }
     ME=m;NAME=raw;LS.set('me',ME);showName();panel.hidden=true;loadAvg();
   };
-  card.append(mk('h2',pre?'Profile poora karo':'Naya account'),mk('div',pre?'Bas desh aur state chuno.':'Naam sabko dikhta hai aur sirf ek player ka hota hai. Password yaad rakhna: bhul gaye to wapas nahi mil sakta.'),nm);
+  card.append(mk('h2',pre?'Complete your profile':'New account'),mk('div',pre?'Just choose your country and state.':'Your name is visible to everyone and belongs to one player only. Remember your password: if you forget it, it cannot be recovered.'),nm);
   if(!pre&&FBON)card.append(pw,show);
   card.append(cty,stBox,err,ok);
   if(!pre)card.append(back);
 }
 function openSignIn(){
   openPanel(false);
-  const nm=fld('Naam','text',12),pw=fld('Password','password',30),err=mk('div','','err'),ok=mk('button','SIGN IN','okb'),back=mk('button','PEECHE'),show=mk('button','PASSWORD DIKHAO');
+  const nm=fld('Name','text',12),pw=fld('Password','password',30),err=mk('div','','err'),ok=mk('button','SIGN IN','okb'),back=mk('button','BACK'),show=mk('button','SHOW PASSWORD');
   show.onclick=()=>{pw.type=pw.type==='password'?'text':'password'};back.onclick=openWelcome;
   ok.onclick=async()=>{
     const raw=nm.value.trim().replace(/\s+/g,' ');
-    if(raw.length<2||!pw.value){err.textContent='Naam aur password dono daalo.';return}
-    ok.disabled=true;err.textContent='Check ho raha hai...';
+    if(raw.length<2||!pw.value){err.textContent='Enter both name and password.';return}
+    ok.disabled=true;err.textContent='Checking...';
     try{
       await net.signIn(raw,pw.value);
       if(!(await net.loadMe())){openRegister(raw);return}
       showName();panel.hidden=true;loadAvg();
     }catch(e){err.textContent=authMsg(e);ok.disabled=false}
   };
-  card.append(mk('h2','Sign in'),mk('div','Jis naam aur password se account banaya tha, wahi daalo.'),nm,pw,show,err,ok,back);
+  card.append(mk('h2','Sign in'),mk('div','Enter the name and password you used to create your account.'),nm,pw,show,err,ok,back);
+}
+function openSetPassword(){
+  openPanel();
+  const pw=fld('New password (6-30 characters)','password',30),err=mk('div','','err'),ok=mk('button','SAVE PASSWORD','okb'),show=mk('button','SHOW PASSWORD');
+  show.onclick=()=>{pw.type=pw.type==='password'?'text':'password'};
+  ok.onclick=async()=>{
+    if(pw.value.length<6||pw.value.length>30){err.textContent='Password must be 6 to 30 characters.';return}
+    ok.disabled=true;err.textContent='Saving...';
+    try{await net.setPassword(pw.value);showName();card.textContent='';card.append(mk('h2','Password saved'),mk('div','You can now sign in on any phone with your name and this password. Remember it: it cannot be recovered.'))}
+    catch(e){err.textContent=authMsg(e);ok.disabled=false}
+  };
+  card.append(mk('h2','Set a password'),mk('div','Add a password to your account so you can sign in on other phones. Your name, score and progress stay the same.'),pw,show,err,ok);
 }
 function openHelp(){
   openPanel();
-  const L=['Daudte raho: Karvo apne aap aage bhaagta hai, aap sirf kudo aur ruko.','Coins uthao (+10). Gumbo ke upar kudo to wo mar jata hai (+20), lagatar kudne par combo badhta hai.','Gaddhe mein girna ya Gumbo se takrana = 1 life gayi. 3 life milti hain.','Har 100 tile par LEVEL UP: game tez hota hai, par ek limit par ruk jata hai.','Kudna: Space ya ↑ ya JUMP button. Dabake rakho to unchi kudoge.','AUTO PLAY mode password se khulta hai.'];
-  card.append(mk('h2','Kaise khele'));
+  const L=['Karvo runs forward by himself. You only jump and stop.','Collect coins (+10). Jump on a Gumbo to defeat it (+20). Chain jumps for combo bonuses.','Falling into a pit or touching a Gumbo costs 1 life. You get 3 lives.','Every 100 tiles is a new LEVEL. The game gets faster, up to a limit.','Jump: Space, Up arrow or the JUMP button. Hold it to jump higher.','AUTO PLAY mode needs a password.'];
+  card.append(mk('h2','How to play'));
   L.forEach(t=>card.append(mk('div','• '+t)));
 }
 async function postScore(){
@@ -570,39 +612,39 @@ async function postScore(){
 async function openLB(tab){
   tab=tab||'world';openPanel();card.append(mk('h2','Leaderboard'));
   const tabs=mk('div',null,'tabs');
-  [['world','Duniya'],['country','Mera Desh'],['state','Mera State']].forEach(([k,t])=>{if(k!=='world'&&!ME)return;const b=mk('button',t);if(k===tab)b.className='on';b.onclick=()=>openLB(k);tabs.append(b)});
-  const list=mk('ol',null,'lb'),foot=mk('div','Load ho raha hai...');card.append(tabs,list,foot);
+  [['world','World'],['country','My Country'],['state','My State']].forEach(([k,t])=>{if(k!=='world'&&!ME)return;const b=mk('button',t);if(k===tab)b.className='on';b.onclick=()=>openLB(k);tabs.append(b)});
+  const list=mk('ol',null,'lb'),foot=mk('div','Loading...');card.append(tabs,list,foot);
   let rows=null;
   if(net.on){try{rows=await net.board(tab,ME)}catch(e){rows=null}}
   const all=rows!==null;
   if(!all)rows=LS.get('lb',[]).map(v=>({n:v.n,s:v.s,c:''}));
-  if(!rows.length)list.append(mk('li','Abhi koi score nahi. Pehle khelo!'));
+  if(!rows.length)list.append(mk('li','No scores yet. Be the first to play!'));
   rows.forEach((r,i)=>{const li=mk('li');li.className=ME&&r.n===ME.name?'me':'';const l=mk('span',(i+1)+'. '+r.n);if(r.c){l.append(mk('small',' '+r.c))}li.append(l,mk('span',String(r.s)));list.append(li)});
-  foot.textContent=(all?'Top 20 players. ':'Sirf is device ka board (online abhi available nahi). ')+'Aapka best: '+myBest;
+  foot.textContent=(all?'Top 20 players. ':'This device only (online is not available right now). ')+'Your best: '+myBest;
 }
 function openOver(r){
   openPanel();
-  const row=mk('div',null,'row2'),b1=mk('button','DOBARA','okb'),b2=mk('button','SHARE'),b3=mk('button','LEADERBOARD'),b4=mk('button','MENU');
+  const row=mk('div',null,'row2'),b1=mk('button','PLAY AGAIN','okb'),b2=mk('button','SHARE'),b3=mk('button','LEADERBOARD'),b4=mk('button','MENU');
   b1.onclick=()=>start('real');b3.onclick=()=>openLB('world');b4.onclick=home;
-  b2.onclick=async()=>{const t='Maine Karvo Run mein '+r.sc+' score kiya! Kya tum mujhe hara sakte ho? '+location.href;try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);b2.textContent='COPY HO GAYA'}}catch(e){}};
+  b2.onclick=async()=>{const t='I scored '+r.sc+' in Karvo Run! Can you beat me? '+location.href;try{if(navigator.share)await navigator.share({text:t});else{await navigator.clipboard.writeText(t);b2.textContent='COPIED'}}catch(e){}};
   row.append(b1,b2,b3,b4);
-  card.append(mk('h2','GAME OVER'),mk('div','Score: '+r.sc),mk('div','Best: '+myBest+(r.nb?'   NAYA RECORD!':'')),row);
+  card.append(mk('h2','GAME OVER'),mk('div','Score: '+r.sc),mk('div','Best: '+myBest+(r.nb?'   NEW RECORD!':'')),row);
 }
 function openRate(){
   openPanel();let st=0;
-  const row=mk('div',null,'stars'),bs=[],ok=mk('button','RATING DO','okb');ok.disabled=true;
+  const row=mk('div',null,'stars'),bs=[],ok=mk('button','SUBMIT RATING','okb');ok.disabled=true;
   for(let i=1;i<=5;i++){const b=mk('button','★','star');b.setAttribute('aria-label',i+' star');b.onclick=()=>{st=i;bs.forEach((x,k)=>x.classList.toggle('on',k<i));ok.disabled=false};bs.push(b);row.append(b)}
   ok.onclick=async()=>{
     if(!st||RATED)return;
     RATED=1;LS.set('rated',1);LS.set('stars',st);
     try{if(net.on)await net.rate(st)}catch(e){}
-    showName();card.textContent='';card.append(mk('h2','Shukriya!'),mk('div',st+' star mili. Rating sirf ek baar hoti hai.'));loadAvg();
+    showName();card.textContent='';card.append(mk('h2','Thank you!'),mk('div',st+' stars received. You can rate only once.'));loadAvg();
   };
-  card.append(mk('h2','Game ko rate karo'),mk('div','Sirf ek baar rating de sakte ho.'),row,ok);
+  card.append(mk('h2','Rate this game'),mk('div','You can rate only once.'),row,ok);
 }
 $('hp').onclick=openHelp;
-$('lo').onclick=()=>{if(!confirm('Logout karna hai? Wapas aane ke liye naam aur password chahiye.'))return;net.logout();showName();openWelcome()};
-{const f=$('fs');if(!document.fullscreenEnabled)f.hidden=true;f.onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen()}catch(e){}}}
+$('pwset').onclick=openSetPassword;
+$('lo').onclick=()=>{if(!confirm('Log out? You will need your name and password to sign in again.'))return;net.logout();showName();openWelcome()};
 $('b3').onclick=()=>openLB('world');
 $('rate').onclick=openRate;
 $('pclose').onclick=()=>{panel.hidden=true};
